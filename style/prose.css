@@ -1,0 +1,145 @@
+/*
+ * Tipografia do Markdown e realce de código do leptos-press. Só tokens do leptos-nebula
+ * (`--lx-…`): trocar o tema muda tudo, sem tocar aqui.
+ *
+ * `.lxp-html` é o trecho de HTML estático gerado no build (parágrafos, listas, cabeçalhos…);
+ * os seletores de elemento ficam restritos a ele para não afetar os componentes do ui.
+ */
+.lxp-html {
+  display: contents;
+}
+
+.lxp-html h1,
+.lxp-html h2,
+.lxp-html h3,
+.lxp-html h4 {
+  scroll-margin-top: calc(var(--lx-header-height) + var(--lx-space-md));
+  line-height: 1.25;
+}
+.lxp-html h1 {
+  margin: 0 0 var(--lx-space-lg);
+  font-size: var(--lx-font-size-xl);
+}
+.lxp-html h2 {
+  margin: var(--lx-space-xl) 0 var(--lx-space-md);
+  padding-top: var(--lx-space-lg);
+  border-top: var(--lx-border-width) solid var(--lx-color-border);
+  font-size: calc(var(--lx-font-size-xl) * 0.8);
+}
+.lxp-html h3 {
+  margin: var(--lx-space-lg) 0 var(--lx-space-sm);
+  font-size: var(--lx-font-size-lg);
+  font-weight: var(--lx-font-weight-strong);
+}
+.lxp-html h4 {
+  margin: var(--lx-space-md) 0 var(--lx-space-sm);
+  font-size: var(--lx-font-size-md);
+  font-weight: var(--lx-font-weight-strong);
+}
+.lxp-html .header-anchor {
+  margin-left: var(--lx-space-sm);
+  color: var(--lx-color-on-surface-muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--lx-duration-fast);
+}
+.lxp-html :is(h1, h2, h3, h4):hover .header-anchor,
+.lxp-html .header-anchor:focus-visible {
+  opacity: 1;
+}
+
+.lxp-html p {
+  margin: var(--lx-space-md) 0;
+  line-height: 1.7;
+}
+.lxp-html a {
+  color: var(--lx-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lxp-html ul,
+.lxp-html ol {
+  margin: var(--lx-space-md) 0;
+  padding-left: var(--lx-space-lg);
+  line-height: 1.7;
+}
+.lxp-html li + li {
+  margin-top: var(--lx-space-xs);
+}
+.lxp-html blockquote {
+  margin: var(--lx-space-md) 0;
+  padding: 0 var(--lx-space-md);
+  border-left: 3px solid var(--lx-color-border-strong);
+  color: var(--lx-color-on-surface-muted);
+}
+.lxp-html hr {
+  margin: var(--lx-space-lg) 0;
+  border: 0;
+  border-top: var(--lx-border-width) solid var(--lx-color-border);
+}
+.lxp-html img {
+  max-width: 100%;
+}
+.lxp-html :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--lx-radius-sm);
+  background: var(--lx-code-bg);
+  font-family: var(--lx-font-mono);
+  font-size: 0.875em;
+}
+/* Bloco de código aninhado em lista/citação (os de topo usam o componente CodeBlock). */
+.lxp-html pre {
+  margin: var(--lx-space-md) 0;
+  padding: var(--lx-space-md);
+  overflow-x: auto;
+  border: var(--lx-border-width) solid var(--lx-color-border);
+  border-radius: var(--lx-radius-md);
+  background: var(--lx-code-bg);
+  color: var(--lx-code-text);
+  font-family: var(--lx-font-mono);
+  font-size: var(--lx-font-size-sm);
+  line-height: 1.6;
+}
+
+/*
+ * Realce: o syntect (no build) emite <span class="escopo escopo …">; aqui cada escopo vira um
+ * token de cor. Do geral para o específico.
+ */
+:is(.lxp-pre, .lxp-html pre) .comment {
+  color: var(--lx-code-comment);
+  font-style: italic;
+}
+:is(.lxp-pre, .lxp-html pre) :is(.keyword, .storage) {
+  color: var(--lx-code-keyword);
+}
+:is(.lxp-pre, .lxp-html pre) :is(.string, .constant.character) {
+  color: var(--lx-code-string);
+}
+:is(.lxp-pre, .lxp-html pre) .constant.numeric {
+  color: var(--lx-code-number);
+}
+:is(.lxp-pre, .lxp-html pre) .constant.language {
+  color: var(--lx-code-keyword);
+}
+:is(.lxp-pre, .lxp-html pre) :is(.entity.name.function, .support.function, .variable.function) {
+  color: var(--lx-code-function);
+}
+:is(.lxp-pre, .lxp-html pre)
+  :is(.entity.name.type, .entity.name.struct, .entity.name.enum, .entity.name.trait, .entity.name.class, .support.type, .support.class) {
+  color: var(--lx-code-type);
+}
+:is(.lxp-pre, .lxp-html pre) .punctuation {
+  color: var(--lx-code-punct);
+}
+/* Aspas e delimitadores dentro de string/comentário herdam a cor do contexto. */
+:is(.lxp-pre, .lxp-html pre) :is(.string, .comment) .punctuation {
+  color: inherit;
+}
+
+/* Conteúdo de alerta: sem margem sobrando no começo e no fim da caixa. */
+.lxp-alert .lxp-html > :first-child {
+  margin-top: 0;
+}
+.lxp-alert .lxp-html > :last-child {
+  margin-bottom: 0;
+}

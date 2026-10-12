@@ -1,0 +1,22 @@
+[package]
+name = "leptos-press"
+description = "Documentação estilo VitePress em Leptos, com o visual do leptos-nebula (runtime: layout e componentes do site)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# Repassam o modo de renderização do app (ADR-0007).
+csr     = ["leptos/csr", "leptos-nebula/csr"]
+hydrate = ["leptos/hydrate", "leptos-nebula/hydrate"]
+ssr     = ["leptos/ssr", "leptos-nebula/ssr", "leptos_meta/ssr", "leptos_router/ssr"]
+
+[dependencies]
+leptos        = { workspace = true }
+leptos_meta   = { workspace = true }
+leptos_router = { workspace = true }
+leptos-nebula     = { workspace = true }
+js-sys        = { workspace = true }
+wasm-bindgen  = { workspace = true }
+web-sys       = { workspace = true, features = ["Window", "Navigator"] }

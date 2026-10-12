@@ -1,0 +1,19 @@
+{
+  "name": "leptos-press",
+  "version": "0.1.0",
+  "private": true,
+  "description": "leptos-press — lado JS: UnoCSS (preset do leptos-nebula) e geração do CSS pré-gerado (style/dist/press.css)",
+  "type": "module",
+  "scripts": {
+    "css": "node scripts/build-css.mjs",
+    "css-check": "node scripts/check-shortcuts.mjs",
+    "css-fresh": "node scripts/build-css.mjs --check"
+  },
+  "dependencies": {
+    "leptos-nebula": "workspace:*"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.138",
+    "unocss": "^66.10.5"
+  }
+}

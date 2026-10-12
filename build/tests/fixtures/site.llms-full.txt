@@ -1,0 +1,31 @@
+---
+url: /index.md
+---
+
+# Início
+
+---
+url: /guide/start.md
+---
+
+# Começando
+
+Veja [a API](/components/btn).
+
+---
+url: /guide/theming.md
+---
+
+# Temas
+
+```rust
+// exemplo Basic
+```
+
+---
+url: /components/btn.md
+---
+
+# Btn
+
+## Props

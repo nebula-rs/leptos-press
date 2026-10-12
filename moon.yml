@@ -1,0 +1,69 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+language: 'rust'
+layer: 'library'
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+    - 'build/src/**/*'
+    - 'build/tests/**/*'
+    - 'style/dist/press.css'
+    - 'Cargo.toml'
+    - 'build/Cargo.toml'
+    - '/Cargo.toml'
+  css:
+    - 'src/**/*.rs'
+    - 'uno/**/*'
+    - 'uno.config.ts'
+    - 'scripts/**/*'
+    - 'style/prose.css'
+    # O press reusa o preset do ui: mudou lá, o press.css pode mudar
+    - '/apps/leptos-nebula/uno/**/*'
+
+tasks:
+  # Gera o CSS pré-gerado versionado (mesmo modelo do ui.css, ADR-0005)
+  css:
+    command: 'pnpm run css'
+    inputs: ['@group(css)']
+    outputs: ['style/dist/press.css']
+
+  # Todo shortcut `lxp-*` precisa gerar CSS
+  css-check:
+    command: 'pnpm run css-check'
+    inputs: ['@group(css)']
+
+  # Falha se o press.css versionado não é o que o build gera agora
+  css-fresh:
+    command: 'pnpm run css-fresh'
+    inputs: ['@group(css)', 'style/dist/press.css']
+
+  check:
+    command: 'cargo check -p leptos-press -p leptos-press-build --all-targets'
+    inputs: ['@group(sources)']
+
+  check-wasm:
+    command: 'cargo check -p leptos-press --features hydrate --target wasm32-unknown-unknown'
+    inputs: ['@group(sources)']
+
+  # O runtime precisa renderizar no servidor (SSG) — ADR-0007
+  check-ssr:
+    command: 'cargo check -p leptos-press --features ssr'
+    inputs: ['@group(sources)']
+
+  lint:
+    command: 'cargo clippy -p leptos-press -p leptos-press-build --all-targets -- -D warnings'
+    inputs: ['@group(sources)']
+
+  lint-wasm:
+    command: 'cargo clippy -p leptos-press --features hydrate --target wasm32-unknown-unknown -- -D warnings'
+    inputs: ['@group(sources)']
+
+  fmt:
+    command: 'cargo fmt -p leptos-press -p leptos-press-build --check'
+    inputs: ['@group(sources)']
+
+  # Roda no host, sem compilar o Leptos (critério de aceite 2)
+  test:
+    command: 'cargo test -p leptos-press-build'
+    inputs: ['@group(sources)']
