@@ -1,4 +1,4 @@
-//! AST do comrak → blocos de código Leptos + HTML estático + texto para LLM.
+//! AST do comrak → blocos de código Leptos + HTML estático + Markdown com as tags expandidas.
 //!
 //! O que é texto corrido (parágrafos, listas, cabeçalhos…) vira **HTML estático** gerado no
 //! build e entregue ao runtime por `leptos_press::html(…)` (`inner_html`); só o que precisa de
@@ -219,8 +219,8 @@ impl<'a> Renderer<'a> {
         let items = component
             .items(&attrs, &ctx)
             .map_err(|e| e.at(self.file, line))?;
-        let llms = component
-            .llms(&attrs, &ctx)
+        let markdown = component
+            .markdown(&attrs, &ctx)
             .map_err(|e| e.at(self.file, line))?;
         if let Some(extra) = attrs.unused().first() {
             return Err(self.err(
@@ -234,16 +234,16 @@ impl<'a> Renderer<'a> {
         self.replacements.borrow_mut().push(Replacement {
             start: line,
             end: node.data().sourcepos.end.line,
-            text: llms,
+            text: markdown,
         });
         Ok(Some(
             quote! { ::leptos::prelude::IntoAny::into_any(#tokens) },
         ))
     }
 
-    /// Texto da página para LLM: o Markdown original (sem front-matter) com as tags
-    /// substituídas pela saída `llms` de cada uma.
-    pub(crate) fn llms_markdown(&self, src: &str, skip_lines: usize) -> String {
+    /// Markdown da página: o original (sem front-matter) com as tags substituídas pela saída
+    /// `markdown` de cada uma.
+    pub(crate) fn expanded_markdown(&self, src: &str, skip_lines: usize) -> String {
         let lines: Vec<&str> = src.split('\n').collect();
         let replacements = self.replacements.borrow();
         let mut out = String::new();
@@ -493,33 +493,16 @@ impl<'a> Renderer<'a> {
             });
             return Ok(url.to_string());
         }
-        let (path, fragment) = url.split_once('#').map_or((url, ""), |(p, f)| (p, f));
-        if let Some(stem) = path.strip_suffix(".md") {
-            let base = Path::new(self.route.trim_start_matches('/'));
-            let base = if self.file.file_stem().is_some_and(|s| s == "index") {
-                base
-            } else {
-                base.parent().unwrap_or(Path::new(""))
-            };
-            let joined = normalize(&base.join(stem));
-            let mut route = format!("/{joined}");
-            if route.ends_with("/index") {
-                route.truncate(route.len() - "/index".len());
+        match resolve_relative(self.route, self.file, url) {
+            Some(resolved) => {
+                let route = resolved.split('#').next().unwrap_or("").to_string();
+                self.links
+                    .borrow_mut()
+                    .push(InternalLink { url: route, line });
+                Ok(resolved)
             }
-            if route.is_empty() {
-                route.push('/');
-            }
-            self.links.borrow_mut().push(InternalLink {
-                url: route.clone(),
-                line,
-            });
-            return Ok(if fragment.is_empty() {
-                route
-            } else {
-                format!("{route}#{fragment}")
-            });
+            None => Ok(url.to_string()),
         }
-        Ok(url.to_string())
     }
 
     fn unique_slug(&self, text: &str) -> String {
@@ -557,6 +540,35 @@ fn alert_kind(kind: AlertType) -> TokenStream {
     };
     let ident = syn::Ident::new(name, proc_macro2::Span::call_site());
     quote! { #ident }
+}
+
+/// Link relativo `./outra.md#x` (como escrito na página `route`, vinda de `file`) → rota da
+/// outra página + fragmento. Externos, âncoras, `/…` e o que não termina em `.md` → `None`.
+pub(crate) fn resolve_relative(route: &str, file: &Path, url: &str) -> Option<String> {
+    if is_external(url) || url.starts_with('#') || url.starts_with('/') {
+        return None;
+    }
+    let (path, fragment) = url.split_once('#').map_or((url, ""), |(p, f)| (p, f));
+    let stem = path.strip_suffix(".md")?;
+    let base = Path::new(route.trim_start_matches('/'));
+    let base = if file.file_stem().is_some_and(|s| s == "index") {
+        base
+    } else {
+        base.parent().unwrap_or(Path::new(""))
+    };
+    let joined = normalize(&base.join(stem));
+    let mut route = format!("/{joined}");
+    if route.ends_with("/index") {
+        route.truncate(route.len() - "/index".len());
+    }
+    if route.is_empty() {
+        route.push('/');
+    }
+    Some(if fragment.is_empty() {
+        route
+    } else {
+        format!("{route}#{fragment}")
+    })
 }
 
 fn is_external(url: &str) -> bool {

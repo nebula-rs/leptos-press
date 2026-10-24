@@ -1,10 +1,10 @@
-//! Compilação de uma página: Markdown → blocos de código + texto para LLM.
+//! Compilação de uma página: Markdown → blocos de código + Markdown com as tags expandidas.
 
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use comrak::{Arena, Options, parse_document};
+use comrak::{Arena, parse_document};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -12,6 +12,7 @@ use crate::component::MdComponent;
 use crate::error::Error;
 use crate::frontmatter::{self, FrontMatter};
 use crate::highlight::Highlighter;
+use crate::plugin::markdown_options;
 use crate::render::{Heading, InternalLink, Renderer};
 
 /// HTML realçado (spans com classes) de um trecho de código, como o dos blocos ```` ``` ````.
@@ -40,7 +41,8 @@ pub struct CompiledPage {
     pub blocks: Vec<TokenStream>,
     /// Itens de módulo pedidos pelas tags (sem repetição).
     pub items: Vec<TokenStream>,
-    /// Markdown da página com as tags já expandidas pela saída `llms` (sem front-matter).
+    /// Markdown da página com as tags expandidas pela saída `markdown` de cada uma (sem
+    /// front-matter). É o que os plugins recebem em [`PageData::markdown`](crate::PageData).
     pub markdown: String,
     pub(crate) links: Vec<InternalLink>,
     /// Arquivos lidos pelas tags.
@@ -58,14 +60,7 @@ pub fn compile_page(
     let (front, body) = frontmatter::split(src, file)?;
     let skip_lines = body.bytes().take_while(|b| *b == b'\n').count();
 
-    let mut options = Options::default();
-    options.extension.table = true;
-    options.extension.strikethrough = true;
-    options.extension.tasklist = true;
-    options.extension.autolink = true;
-    options.extension.alerts = true;
-    options.extension.block_directive = true;
-
+    let options = markdown_options();
     let arena = Arena::new();
     let document = parse_document(&arena, &body, &options);
 
@@ -86,7 +81,7 @@ pub fn compile_page(
         .unwrap_or_default();
     let description = front.description.clone().unwrap_or_default();
 
-    let mut markdown = renderer.llms_markdown(src, skip_lines);
+    let mut markdown = renderer.expanded_markdown(src, skip_lines);
     if h1.is_none() {
         markdown = format!("# {title}\n\n{markdown}");
     }

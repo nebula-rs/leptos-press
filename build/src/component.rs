@@ -76,7 +76,7 @@ impl Ctx<'_> {
     }
 }
 
-/// Uma tag aceita no Markdown, com **duas** saídas: código e texto para LLM.
+/// Uma tag aceita no Markdown, com **duas** saídas: código (a view) e Markdown.
 pub trait MdComponent {
     /// Nome da tag (`"DocExample"`).
     fn tag(&self) -> &'static str;
@@ -91,6 +91,8 @@ pub trait MdComponent {
         Ok(TokenStream::new())
     }
 
-    /// Markdown que substitui a tag no `llms-full.txt` e na cópia `.md` da página.
-    fn llms(&self, attrs: &Attrs, ctx: &Ctx) -> Result<String, Error>;
+    /// Representação Markdown da tag: substitui a tag no Markdown da página que os plugins
+    /// recebem ([`PageData::markdown`](crate::PageData)) — `llms-full.txt`, cópias `.md`,
+    /// bundle OKF etc.
+    fn markdown(&self, attrs: &Attrs, ctx: &Ctx) -> Result<String, Error>;
 }

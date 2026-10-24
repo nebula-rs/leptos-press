@@ -11,6 +11,7 @@ use crate::component::MdComponent;
 use crate::error::Error;
 use crate::frontmatter::Layout;
 use crate::page::{CompiledPage, compile_page, format_rust};
+use crate::plugin::{GroupData, Output, Plugin, SiteData, page_data, page_error, plugin_error};
 
 /// Configuração do site e geração de `press.rs` + arquivos estáticos.
 pub struct Site {
@@ -21,13 +22,14 @@ pub struct Site {
     nav: Vec<(String, String)>,
     groups: Vec<(String, String)>,
     components: Vec<Box<dyn MdComponent>>,
+    plugins: Vec<Box<dyn Plugin>>,
 }
 
 /// Saída da geração (antes de escrever em disco).
 pub struct Generated {
     /// Conteúdo de `press.rs` (já formatado).
     pub rust: String,
-    /// Arquivos estáticos (`llms.txt`, `llms-full.txt`, `<rota>.md`), por caminho relativo.
+    /// Arquivos estáticos emitidos pelos plugins, por caminho relativo.
     pub files: BTreeMap<String, String>,
     /// Arquivos e diretórios que o build leu.
     pub inputs: Vec<PathBuf>,
@@ -47,6 +49,7 @@ impl Site {
             nav: Vec::new(),
             groups: Vec::new(),
             components: Vec::new(),
+            plugins: Vec::new(),
         }
     }
 
@@ -99,7 +102,14 @@ impl Site {
         self
     }
 
-    /// Gera tudo em memória.
+    /// Registra um plugin de build. Os plugins rodam na ordem de registro.
+    pub fn plugin(mut self, plugin: impl Plugin + 'static) -> Self {
+        self.plugins.push(Box::new(plugin));
+        self
+    }
+
+    /// Gera tudo em memória: compila as páginas → `check_page` dos plugins → `emit` dos
+    /// plugins → valida os links internos (rotas e arquivos emitidos) → `press.rs`.
     pub fn generate(&self) -> Result<Generated, Error> {
         let content_dir = self.root.join(&self.content);
         let mut files = Vec::new();
@@ -136,17 +146,12 @@ impl Site {
         }
         inputs.extend(reads.into_inner());
 
-        let md_files: BTreeMap<String, String> = pages
-            .iter()
-            .zip(&files)
-            .map(|(p, f)| (p.route.clone(), md_name(&p.route, f)))
-            .collect();
-        self.validate_links(&pages, &md_files)?;
-
         let sidebar = self.sidebar(&pages);
+        let files = self.run_plugins(&pages, &sidebar)?;
+        self.validate_links(&pages, &files)?;
+
         let nav = self.resolve_nav(&pages, &sidebar)?;
         let rust = self.emit_rust(&pages, &sidebar, &nav)?;
-        let files = self.static_files(&pages, &sidebar, &md_files);
         Ok(Generated {
             rust,
             files,
@@ -169,15 +174,68 @@ impl Site {
         Ok(())
     }
 
+    fn run_plugins(
+        &self,
+        pages: &[CompiledPage],
+        sidebar: &[Group],
+    ) -> Result<BTreeMap<String, String>, Error> {
+        if self.plugins.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let site = self.site_data(pages, sidebar);
+        for plugin in &self.plugins {
+            for page in &site.pages {
+                plugin
+                    .check_page(page)
+                    .map_err(|e| page_error(plugin.name(), &page.file, e))?;
+            }
+        }
+        let mut out = Output::default();
+        for plugin in &self.plugins {
+            out.set_current(plugin.name());
+            plugin
+                .emit(&site, &mut out)
+                .map_err(|e| plugin_error(plugin.name(), e))?;
+        }
+        Ok(out.into_files())
+    }
+
+    /// Páginas na ordem da sidebar, depois as que não estão nela (por rota).
+    fn site_data(&self, pages: &[CompiledPage], sidebar: &[Group]) -> SiteData {
+        let mut ordered: Vec<&CompiledPage> = Vec::new();
+        for (_, route, _) in sidebar.iter().flat_map(|g| g.items.iter()) {
+            if let Some(page) = pages.iter().find(|p| &p.route == route) {
+                ordered.push(page);
+            }
+        }
+        let mut rest: Vec<&CompiledPage> = pages
+            .iter()
+            .filter(|p| !ordered.iter().any(|o| o.route == p.route))
+            .collect();
+        rest.sort_by(|a, b| a.route.cmp(&b.route));
+        ordered.extend(rest);
+        SiteData {
+            title: self.title.clone(),
+            description: self.description.clone(),
+            pages: ordered.into_iter().map(page_data).collect(),
+            groups: sidebar
+                .iter()
+                .map(|g| GroupData {
+                    folder: g.folder.clone(),
+                    text: g.text.clone(),
+                    routes: g.items.iter().map(|(_, r, _)| r.clone()).collect(),
+                })
+                .collect(),
+        }
+    }
+
     fn validate_links(
         &self,
         pages: &[CompiledPage],
-        md_files: &BTreeMap<String, String>,
+        files: &BTreeMap<String, String>,
     ) -> Result<(), Error> {
         let mut valid: BTreeSet<String> = pages.iter().map(|p| p.route.clone()).collect();
-        valid.insert("/llms.txt".into());
-        valid.insert("/llms-full.txt".into());
-        valid.extend(md_files.values().map(|m| format!("/{m}")));
+        valid.extend(files.keys().map(|f| format!("/{f}")));
         for page in pages {
             for link in &page.links {
                 let path = link.url.split(['#', '?']).next().unwrap_or("");
@@ -226,6 +284,7 @@ impl Site {
                     .find(|(f, _)| *f == folder)
                     .map_or_else(|| title_case(&folder), |(_, t)| t.clone());
                 Some(Group {
+                    folder: folder.clone(),
                     text,
                     items: list
                         .into_iter()
@@ -325,68 +384,10 @@ impl Site {
         };
         format_rust(tokens)
     }
-
-    fn static_files(
-        &self,
-        pages: &[CompiledPage],
-        sidebar: &[Group],
-        md_files: &BTreeMap<String, String>,
-    ) -> BTreeMap<String, String> {
-        let mut files = BTreeMap::new();
-        for page in pages {
-            files.insert(md_files[&page.route].clone(), page.markdown.clone());
-        }
-        let by_route: BTreeMap<&str, &CompiledPage> =
-            pages.iter().map(|p| (p.route.as_str(), p)).collect();
-
-        // llms.txt (llmstxt.org)
-        let mut txt = format!("# {}\n\n", self.title);
-        if !self.description.is_empty() {
-            txt.push_str(&format!("> {}\n\n", self.description));
-        }
-        for group in sidebar {
-            txt.push_str(&format!("## {}\n\n", group.text));
-            for (title, route, desc) in &group.items {
-                txt.push_str(&format!("- [{title}](/{})", md_files[route]));
-                if !desc.is_empty() {
-                    txt.push_str(&format!(": {desc}"));
-                }
-                txt.push('\n');
-            }
-            txt.push('\n');
-        }
-        files.insert("llms.txt".into(), format!("{}\n", txt.trim_end()));
-
-        // llms-full.txt: home, sidebar na ordem, depois o resto.
-        let mut ordered: Vec<&str> = Vec::new();
-        if by_route.contains_key("/") {
-            ordered.push("/");
-        }
-        for (_, route, _) in sidebar.iter().flat_map(|g| g.items.iter()) {
-            ordered.push(route);
-        }
-        for route in by_route.keys() {
-            if !ordered.contains(route) {
-                ordered.push(route);
-            }
-        }
-        let full = ordered
-            .iter()
-            .map(|route| {
-                format!(
-                    "---\nurl: /{}\n---\n\n{}",
-                    md_files[*route],
-                    by_route[route].markdown.trim_end()
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
-        files.insert("llms-full.txt".into(), format!("{full}\n"));
-        files
-    }
 }
 
 struct Group {
+    folder: String,
     text: String,
     /// (título, rota, descrição)
     items: Vec<(String, String, String)>,
@@ -523,20 +524,6 @@ fn route_of(rel: &Path) -> String {
         parts.pop();
     }
     format!("/{}", parts.join("/"))
-}
-
-/// Caminho da cópia `.md` (relativo à saída): `/` → `index.md`; pasta com `index.md` →
-/// `pasta/index.md`; página → `rota.md`.
-fn md_name(route: &str, file: &Path) -> String {
-    if route == "/" {
-        return "index.md".into();
-    }
-    let trimmed = route.trim_start_matches('/');
-    if file.file_stem().is_some_and(|s| s == "index") {
-        format!("{trimmed}/index.md")
-    } else {
-        format!("{trimmed}.md")
-    }
 }
 
 fn normalize_route(link: &str) -> String {

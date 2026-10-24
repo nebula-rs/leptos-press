@@ -4,12 +4,13 @@
 use std::path::{Path, PathBuf};
 
 use leptos_press_build::{
-    Attrs, CompiledPage, Ctx, Error, MdComponent, Site, compile_page, format_rust,
+    Attrs, CompiledPage, Ctx, Error, LlmsPlugin, MdComponent, Output, PageData, Plugin, Site,
+    SiteData, compile_page, format_rust,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-/// Tag de teste: o código chama `echo(file, titulo)` e o texto para LLM cita o arquivo.
+/// Tag de teste: o código chama `echo(file, titulo)` e a saída Markdown cita o arquivo.
 struct Echo;
 
 impl MdComponent for Echo {
@@ -26,7 +27,7 @@ impl MdComponent for Echo {
         let name = format_ident!("mod_{}", attrs.require("file")?.to_lowercase());
         Ok(quote! { mod #name; })
     }
-    fn llms(&self, attrs: &Attrs, _ctx: &Ctx) -> Result<String, Error> {
+    fn markdown(&self, attrs: &Attrs, _ctx: &Ctx) -> Result<String, Error> {
         Ok(format!(
             "```rust\n// exemplo {}\n```",
             attrs.require("file")?
@@ -174,9 +175,10 @@ fn temp_site(name: &str, files: &[(&str, &str)]) -> PathBuf {
     root
 }
 
-fn two_section_site() -> PathBuf {
+/// `name` = pasta temporária própria de cada teste (os testes rodam em paralelo).
+fn two_section_site(name: &str) -> PathBuf {
     temp_site(
-        "two-sections",
+        name,
         &[
             (
                 "content/index.md",
@@ -208,11 +210,12 @@ fn site(root: &Path) -> Site {
         .nav([("Guia", "/guide/"), ("Componentes", "/components/")])
         .sidebar_from_folders()
         .component(Echo)
+        .plugin(LlmsPlugin)
 }
 
 #[test]
 fn llms_files_of_a_two_section_site() {
-    let generated = site(&two_section_site())
+    let generated = site(&two_section_site("two-sections"))
         .generate()
         .unwrap_or_else(|e| panic!("{e}"));
     let dir = fixtures_dir();
@@ -281,4 +284,121 @@ fn duplicate_routes_are_an_error() {
         .unwrap()
         .to_string();
     assert!(e.contains("a rota /a é gerada por"), "{e}");
+}
+
+// ── Plugins ─────────────────────────────────────────────────────────────────
+
+/// Emite `path` com um texto fixo; `check_page` falha nas páginas com `fail: true`.
+struct Emit(&'static str, &'static str);
+
+impl Plugin for Emit {
+    fn name(&self) -> &'static str {
+        self.0
+    }
+    fn check_page(&self, page: &PageData) -> Result<(), Error> {
+        if page.front.extra.contains_key("fail") {
+            return Err(Error::new("página recusada"));
+        }
+        Ok(())
+    }
+    fn emit(&self, site: &SiteData, out: &mut Output) -> Result<(), Error> {
+        out.add(self.1, format!("{} páginas", site.pages.len()))
+    }
+}
+
+#[test]
+fn emitted_file_is_a_valid_link_target() {
+    let root = temp_site(
+        "plugin-link",
+        &[(
+            "content/a.md",
+            "# A\n\n[x](/extra/dados.txt) e [y](/llms.txt)\n",
+        )],
+    );
+    let base = || Site::new("content").root(&root);
+    let e = base().generate().err().unwrap().to_string();
+    assert!(e.contains("link interno quebrado: /extra/dados.txt"), "{e}");
+    let generated = base()
+        .plugin(Emit("dados", "extra/dados.txt"))
+        .plugin(LlmsPlugin)
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(generated.files["extra/dados.txt"], "1 páginas");
+}
+
+#[test]
+fn no_plugins_no_static_files() {
+    let root = temp_site("no-plugins", &[("content/a.md", "# A\n")]);
+    let generated = Site::new("content").root(&root).generate().unwrap();
+    assert!(generated.files.is_empty(), "{:?}", generated.files.keys());
+}
+
+#[test]
+fn same_path_from_two_plugins_is_an_error() {
+    let root = temp_site("plugin-dup", &[("content/a.md", "# A\n")]);
+    let e = Site::new("content")
+        .root(&root)
+        .plugin(Emit("um", "x.txt"))
+        .plugin(Emit("outro", "x.txt"))
+        .generate()
+        .err()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        e,
+        "plugin `outro`: `x.txt` emitido por dois plugins: `um` e `outro`"
+    );
+}
+
+#[test]
+fn check_page_error_points_to_the_file() {
+    let root = temp_site(
+        "plugin-check",
+        &[
+            ("content/a.md", "# A\n"),
+            ("content/b.md", "---\nfail: true\n---\n# B\n"),
+        ],
+    );
+    let e = Site::new("content")
+        .root(&root)
+        .plugin(Emit("revisor", "x.txt"))
+        .generate()
+        .err()
+        .unwrap()
+        .to_string();
+    assert!(
+        e.ends_with("content/b.md:1: plugin `revisor`: página recusada"),
+        "{e}"
+    );
+}
+
+#[test]
+fn site_data_order_and_groups() {
+    struct Spy;
+    impl Plugin for Spy {
+        fn name(&self) -> &'static str {
+            "spy"
+        }
+        fn emit(&self, site: &SiteData, out: &mut Output) -> Result<(), Error> {
+            let routes: Vec<&str> = site.pages.iter().map(|p| p.route.as_str()).collect();
+            let groups: Vec<String> = site
+                .groups
+                .iter()
+                .map(|g| format!("{}={}:{}", g.folder, g.text, g.routes.join(",")))
+                .collect();
+            out.add(
+                "spy.txt",
+                format!("{}\n{}", routes.join(" "), groups.join(" ")),
+            )
+        }
+    }
+    let generated = site(&two_section_site("site-data"))
+        .plugin(Spy)
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        generated.files["spy.txt"],
+        "/guide/start /guide/theming /components/btn /\n\
+         guide=Guia:/guide/start,/guide/theming components=Componentes:/components/btn"
+    );
 }
