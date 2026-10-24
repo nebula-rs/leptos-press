@@ -9,7 +9,7 @@
 //!     .title("meu site")
 //!     .nav([("Guia", "/guide/")])
 //!     .sidebar_from_folders()
-//!     .plugin(leptos_press_build::LlmsPlugin)
+//!     .plugin(leptos_press_llms::Llms::default()) // crate próprio
 //!     .build()
 //!     .unwrap_or_else(|e| panic!("{e}"));
 //! ```
@@ -21,7 +21,6 @@ mod error;
 mod frontmatter;
 mod highlight;
 mod html;
-mod llms;
 mod page;
 mod plugin;
 mod render;
@@ -30,7 +29,6 @@ mod site;
 pub use component::{Attrs, Ctx, MdComponent};
 pub use error::Error;
 pub use frontmatter::{Feature, FrontMatter, Hero, HeroAction, Layout};
-pub use llms::LlmsPlugin;
 pub use page::{CompiledPage, compile_page, format_rust, highlight_html};
 pub use plugin::{GroupData, Output, PageData, Plugin, SiteData, map_links};
 pub use render::Heading;

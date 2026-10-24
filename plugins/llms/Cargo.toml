@@ -1,0 +1,15 @@
+[package]
+name = "leptos-press-llms"
+description = "leptos-press build plugin: llms.txt, llms-full.txt and a Markdown copy of each page (llmstxt.org)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+leptos-press-build = { workspace = true }
+
+[dev-dependencies]
+# Só a tag de teste (`MdComponent::codegen` devolve um `TokenStream`)
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }

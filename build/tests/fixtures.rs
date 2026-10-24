@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 
 use leptos_press_build::{
-    Attrs, CompiledPage, Ctx, Error, LlmsPlugin, MdComponent, Output, PageData, Plugin, Site,
-    SiteData, compile_page, format_rust,
+    Attrs, CompiledPage, Ctx, Error, MdComponent, Output, PageData, Plugin, Site, SiteData,
+    compile_page, format_rust,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -210,34 +210,14 @@ fn site(root: &Path) -> Site {
         .nav([("Guia", "/guide/"), ("Componentes", "/components/")])
         .sidebar_from_folders()
         .component(Echo)
-        .plugin(LlmsPlugin)
 }
 
 #[test]
-fn llms_files_of_a_two_section_site() {
+fn press_rs_of_a_two_section_site() {
     let generated = site(&two_section_site("two-sections"))
         .generate()
         .unwrap_or_else(|e| panic!("{e}"));
-    let dir = fixtures_dir();
-    expect(&dir.join("site.llms.txt"), &generated.files["llms.txt"]);
-    expect(
-        &dir.join("site.llms-full.txt"),
-        &generated.files["llms-full.txt"],
-    );
-    expect(&dir.join("site.press.rs"), &generated.rust);
-    for name in [
-        "index.md",
-        "guide/start.md",
-        "guide/theming.md",
-        "components/btn.md",
-    ] {
-        assert!(
-            generated.files.contains_key(name),
-            "falta {name}: {:?}",
-            generated.files.keys()
-        );
-    }
-    assert!(generated.files["guide/theming.md"].contains("// exemplo Basic"));
+    expect(&fixtures_dir().join("site.press.rs"), &generated.rust);
 }
 
 #[test]
@@ -310,17 +290,13 @@ impl Plugin for Emit {
 fn emitted_file_is_a_valid_link_target() {
     let root = temp_site(
         "plugin-link",
-        &[(
-            "content/a.md",
-            "# A\n\n[x](/extra/dados.txt) e [y](/llms.txt)\n",
-        )],
+        &[("content/a.md", "# A\n\n[x](/extra/dados.txt)\n")],
     );
     let base = || Site::new("content").root(&root);
     let e = base().generate().err().unwrap().to_string();
     assert!(e.contains("link interno quebrado: /extra/dados.txt"), "{e}");
     let generated = base()
         .plugin(Emit("dados", "extra/dados.txt"))
-        .plugin(LlmsPlugin)
         .generate()
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(generated.files["extra/dados.txt"], "1 páginas");
