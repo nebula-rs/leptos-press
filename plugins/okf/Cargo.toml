@@ -1,0 +1,15 @@
+[package]
+name = "leptos-press-okf"
+description = "leptos-press build plugin: the site as an Open Knowledge Format (OKF v0.2) bundle"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+leptos-press-build = { workspace = true }
+
+[dev-dependencies]
+# Só a tag de teste (`MdComponent::codegen` devolve um `TokenStream`)
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }

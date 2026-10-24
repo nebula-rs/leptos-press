@@ -1,0 +1,112 @@
+=== okf/about.md ===
+---
+type: Documentation Page
+title: Sobre
+---
+
+# Sobre
+
+Uma página fora da sidebar.
+=== okf/components/btn.md ===
+---
+type: Leptos Component
+title: Btn (QBtn)
+description: Botão
+status: draft
+sources:
+- resource: https://quasar.dev/vue-components/button
+---
+
+# Btn
+
+## Props
+
+De volta ao [guia](/guide/start.md).
+=== okf/components/extra/deep.md ===
+---
+type: Leptos Component
+title: Fundo
+---
+
+# Fundo
+=== okf/components/extra/index.md ===
+# extra
+
+* [Fundo](/components/extra/deep.md)
+=== okf/components/index.md ===
+# Componentes
+
+* [Btn](/components/btn.md) - Botão
+* [extra](/components/extra/index.md)
+=== okf/guide/index.md ===
+# Guia
+
+* [Começando](/guide/start.md) - Como começar
+* [Temas](/guide/theming.md) - Tokens
+=== okf/guide/start.md ===
+---
+type: Guide
+title: Começando
+description: Como começar
+tags:
+- intro
+- setup
+---
+
+# Começando
+
+Veja [a API](/components/btn.md), as [props](/components/btn.md#props), a [home](/overview.md),
+os [tokens](/guide/theming.md#tokens), o [site](https://example.com) e os [passos](#passos).
+
+## Passos
+
+```md
+[não mexe](/components/btn)
+```
+
+Texto com `[código](/components/btn)` inline.
+=== okf/guide/theming.md ===
+---
+type: Tutorial
+title: Temas
+description: Tokens
+---
+
+# Temas
+
+## Tokens
+
+```rust
+// exemplo Basic
+```
+=== okf/index.md ===
+---
+okf_version: "0.2"
+---
+
+# leptos-nebula
+
+Componentes Leptos
+
+* [Início](/overview.md) - Página inicial
+* [Sobre](/about.md)
+
+## Guia
+
+* [Começando](/guide/start.md) - Como começar
+* [Temas](/guide/theming.md) - Tokens
+
+## Componentes
+
+* [Btn](/components/btn.md) - Botão
+* [Fundo](/components/extra/deep.md)
+=== okf/overview.md ===
+---
+type: Documentation Page
+title: Início
+description: Página inicial
+---
+
+# Início
+
+Comece pelo [guia](/guide/start.md).

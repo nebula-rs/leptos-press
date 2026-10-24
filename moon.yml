@@ -10,6 +10,7 @@ fileGroups:
     - 'build/tests/**/*'
     - 'plugins/*/src/**/*'
     - 'plugins/*/tests/**/*'
+    - 'plugins/*/examples/**/*'
     - 'plugins/*/Cargo.toml'
     - 'style/dist/press.css'
     - 'Cargo.toml'
@@ -42,7 +43,7 @@ tasks:
     inputs: ['@group(css)', 'style/dist/press.css']
 
   check:
-    command: 'cargo check -p leptos-press -p leptos-press-build -p leptos-press-llms --all-targets'
+    command: 'cargo check -p leptos-press -p leptos-press-build -p leptos-press-llms -p leptos-press-okf --all-targets'
     inputs: ['@group(sources)']
 
   check-wasm:
@@ -55,7 +56,7 @@ tasks:
     inputs: ['@group(sources)']
 
   lint:
-    command: 'cargo clippy -p leptos-press -p leptos-press-build -p leptos-press-llms --all-targets -- -D warnings'
+    command: 'cargo clippy -p leptos-press -p leptos-press-build -p leptos-press-llms -p leptos-press-okf --all-targets -- -D warnings'
     inputs: ['@group(sources)']
 
   lint-wasm:
@@ -63,10 +64,10 @@ tasks:
     inputs: ['@group(sources)']
 
   fmt:
-    command: 'cargo fmt -p leptos-press -p leptos-press-build -p leptos-press-llms --check'
+    command: 'cargo fmt -p leptos-press -p leptos-press-build -p leptos-press-llms -p leptos-press-okf --check'
     inputs: ['@group(sources)']
 
   # Roda no host, sem compilar o Leptos (critério de aceite 2); inclui os plugins
   test:
-    command: 'cargo test -p leptos-press-build -p leptos-press-llms'
+    command: 'cargo test -p leptos-press-build -p leptos-press-llms -p leptos-press-okf'
     inputs: ['@group(sources)']
