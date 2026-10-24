@@ -10,7 +10,7 @@ use quote::{format_ident, quote};
 use crate::component::MdComponent;
 use crate::error::Error;
 use crate::frontmatter::Layout;
-use crate::page::{CompiledPage, compile_page, format_rust};
+use crate::page::{CompiledPage, compile_page_in_site, format_rust};
 use crate::plugin::{GroupData, Output, Plugin, SiteData, page_data, page_error, plugin_error};
 
 /// Configuração do site e geração de `press.rs` + arquivos estáticos.
@@ -126,6 +126,11 @@ impl Site {
         let mut inputs = vec![content_dir.clone()];
         let mut pages: Vec<CompiledPage> = Vec::new();
         let mut seen: BTreeMap<String, PathBuf> = BTreeMap::new();
+        // Todas as rotas antes de compilar: link interno que não é rota é arquivo estático.
+        let routes: BTreeSet<String> = files
+            .iter()
+            .map(|p| route_of(p.strip_prefix(&content_dir).unwrap_or(p)))
+            .collect();
         for path in &files {
             let rel = path.strip_prefix(&self.root).unwrap_or(path).to_path_buf();
             let in_content = path.strip_prefix(&content_dir).unwrap_or(path);
@@ -140,7 +145,14 @@ impl Site {
             }
             let src = std::fs::read_to_string(path).map_err(|e| Error::io(&rel, &e))?;
             inputs.push(path.clone());
-            let page = compile_page(&src, &rel, &route, &self.root, &self.components)?;
+            let page = compile_page_in_site(
+                &src,
+                &rel,
+                &route,
+                &self.root,
+                &self.components,
+                Some(&routes),
+            )?;
             reads.borrow_mut().extend(page.reads.iter().cloned());
             pages.push(page);
         }

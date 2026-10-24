@@ -300,6 +300,23 @@ fn emitted_file_is_a_valid_link_target() {
         .generate()
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(generated.files["extra/dados.txt"], "1 páginas");
+    // O roteador do cliente deixa o navegador carregar o arquivo (sem o 404 do SPA).
+    assert!(
+        generated
+            .rust
+            .contains(r#"<a href=\"/extra/dados.txt\" rel=\"external\">"#),
+        "{}",
+        generated.rust
+    );
+}
+
+#[test]
+fn page_links_get_no_rel_external() {
+    let generated = site(&two_section_site("page-links"))
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert!(generated.rust.contains(r#"<a href=\"/components/btn\">"#));
+    assert!(!generated.rust.contains("rel=\\\"external"));
 }
 
 #[test]

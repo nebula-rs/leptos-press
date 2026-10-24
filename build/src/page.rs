@@ -1,6 +1,7 @@
 //! Compilação de uma página: Markdown → blocos de código + Markdown com as tags expandidas.
 
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -57,6 +58,20 @@ pub fn compile_page(
     root: &Path,
     components: &[Box<dyn MdComponent>],
 ) -> Result<CompiledPage, Error> {
+    compile_page_in_site(src, file, route, root, components, None)
+}
+
+/// [`compile_page`] sabendo as rotas do site: link interno `/…` que não é rota (arquivo
+/// emitido por plugin, como `/llms.txt`) ganha `rel="external"`, para o roteador do cliente
+/// deixar o navegador carregar o arquivo em vez de mostrar o 404 da aplicação.
+pub(crate) fn compile_page_in_site(
+    src: &str,
+    file: &Path,
+    route: &str,
+    root: &Path,
+    components: &[Box<dyn MdComponent>],
+    routes: Option<&BTreeSet<String>>,
+) -> Result<CompiledPage, Error> {
     let (front, body) = frontmatter::split(src, file)?;
     let skip_lines = body.bytes().take_while(|b| *b == b'\n').count();
 
@@ -65,7 +80,8 @@ pub fn compile_page(
     let document = parse_document(&arena, &body, &options);
 
     let reads = RefCell::new(Vec::new());
-    let renderer = Renderer::new(file, route, root, &front, components, highlighter(), &reads);
+    let renderer = Renderer::new(file, route, root, &front, components, highlighter(), &reads)
+        .with_routes(routes);
     let blocks = renderer.blocks(document)?;
     let headings = renderer.headings.borrow().clone();
 

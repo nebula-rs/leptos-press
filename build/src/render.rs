@@ -5,7 +5,7 @@
 //! componente (bloco de código, tabela, alerta, tags registradas) vira chamada própria.
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 use comrak::nodes::{AlertType, AstNode, ListType, NodeValue, TableAlignment};
@@ -47,6 +47,8 @@ pub(crate) struct Renderer<'a> {
     pub components: &'a [Box<dyn MdComponent>],
     pub highlighter: &'a Highlighter,
     pub reads: &'a RefCell<Vec<PathBuf>>,
+    /// Rotas do site, quando conhecidas (compilação dentro de um `Site`).
+    routes: Option<&'a BTreeSet<String>>,
     pub headings: RefCell<Vec<Heading>>,
     slugs: RefCell<HashMap<String, usize>>,
     pub items: RefCell<Vec<TokenStream>>,
@@ -78,12 +80,33 @@ impl<'a> Renderer<'a> {
             components,
             highlighter,
             reads,
+            routes: None,
             headings: RefCell::default(),
             slugs: RefCell::default(),
             items: RefCell::default(),
             replacements: RefCell::default(),
             links: RefCell::default(),
         }
+    }
+
+    pub(crate) fn with_routes(mut self, routes: Option<&'a BTreeSet<String>>) -> Self {
+        self.routes = routes;
+        self
+    }
+
+    /// Link interno `/…` para algo que não é página (arquivo estático), se as rotas são
+    /// conhecidas.
+    fn is_static_file(&self, href: &str) -> bool {
+        let Some(routes) = self.routes else {
+            return false;
+        };
+        if !href.starts_with('/') {
+            return false;
+        }
+        let path = href.split(['#', '?']).next().unwrap_or("");
+        let trimmed = path.trim_end_matches('/');
+        let route = if trimmed.is_empty() { "/" } else { trimmed };
+        !routes.contains(route)
     }
 
     fn err(&self, line: usize, message: impl Into<String>) -> Error {
@@ -430,6 +453,8 @@ impl<'a> Renderer<'a> {
                 out.push_str(&format!("<a href=\"{}\"", escape(&href)));
                 if is_external(&href) {
                     out.push_str(" target=\"_blank\" rel=\"noopener noreferrer\"");
+                } else if self.is_static_file(&href) {
+                    out.push_str(" rel=\"external\"");
                 }
                 if !link.title.is_empty() {
                     out.push_str(&format!(" title=\"{}\"", escape(&link.title)));
