@@ -38,6 +38,12 @@ export const shortcuts: Shortcuts = {
   // Outline: some abaixo de 1280px (v0); sticky abaixo do cabeçalho, com rolagem própria.
   'lxp-aside': `hidden xl:block sticky self-start overflow-y-auto box-border top-[calc(${v('header-height')}+${sp('xl')})] max-h-[calc(100vh-${v('header-height')}-${sp('2xl')})]`,
   // Padding horizontal: o fundo do item ativo/hover não toca as bordas da gaveta.
+  // Grupo recolhível: o cabeçalho (um `Item` em `div > div:first-child`) perde o padding e a
+  // altura mínima, porque o `ItemLabel header` do slot já traz recuo e espaçamento; o chevron
+  // recebe o mesmo recuo à direita. O `-spaced` repõe o espaço acima dos grupos que não são o
+  // primeiro (o `first:` do `ItemLabel header` só vale para o primeiro filho da lista).
+  'lxp-sidebar-group': `block [&>div>div:first-child>.lx-item]:p-0 [&>div>div:first-child>.lx-item]:min-h-0 [&_.lx-item-section-side]:pr-[var(--lx-item-padding-x)]`,
+  'lxp-sidebar-group-spaced': `block [&>div>div:first-child>.lx-item]:p-0 [&>div>div:first-child>.lx-item]:min-h-0 [&_.lx-item-section-side]:pr-[var(--lx-item-padding-x)] [&_.lx-item-label-header]:!pt-[var(--lx-space-lg)]`,
   'lxp-sidebar': `block box-border px-[${sp('sm')}] py-[${sp('sm')}]`,
   'lxp-outline': 'block box-border',
   'lxp-prose': 'block min-w-0',

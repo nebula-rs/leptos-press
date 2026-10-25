@@ -20,7 +20,8 @@ pub struct Site {
     title: String,
     description: String,
     nav: Vec<(String, String)>,
-    groups: Vec<(String, String)>,
+    /// (pasta, título, `collapsed` à la VitePress)
+    groups: Vec<(String, String, Option<bool>)>,
     components: Vec<Box<dyn MdComponent>>,
     plugins: Vec<Box<dyn Plugin>>,
 }
@@ -92,7 +93,21 @@ impl Site {
 
     /// Título e posição de um grupo da sidebar (`folder` = nome da pasta).
     pub fn group(mut self, folder: impl Into<String>, text: impl Into<String>) -> Self {
-        self.groups.push((folder.into(), text.into()));
+        self.groups.push((folder.into(), text.into(), None));
+        self
+    }
+
+    /// Como [`Site::group`], mas recolhível (`collapsed` do VitePress): `false` = recolhível e
+    /// aberto, `true` = recolhível e fechado. O grupo da página atual abre sozinho. Sem isso
+    /// (`group`), o grupo não é recolhível.
+    pub fn group_collapsed(
+        mut self,
+        folder: impl Into<String>,
+        text: impl Into<String>,
+        collapsed: bool,
+    ) -> Self {
+        self.groups
+            .push((folder.into(), text.into(), Some(collapsed)));
         self
     }
 
@@ -278,7 +293,7 @@ impl Site {
             }
             by_folder.entry(folder.to_string()).or_default().push(page);
         }
-        let mut order: Vec<String> = self.groups.iter().map(|(f, _)| f.clone()).collect();
+        let mut order: Vec<String> = self.groups.iter().map(|(f, _, _)| f.clone()).collect();
         let rest: Vec<String> = by_folder
             .keys()
             .filter(|f| !order.contains(f))
@@ -290,14 +305,12 @@ impl Site {
             .filter_map(|folder| {
                 let mut list = by_folder.remove(&folder)?;
                 list.sort_by_key(|p| (p.front.order.unwrap_or(i64::MAX), p.title.to_lowercase()));
-                let text = self
-                    .groups
-                    .iter()
-                    .find(|(f, _)| *f == folder)
-                    .map_or_else(|| title_case(&folder), |(_, t)| t.clone());
+                let declared = self.groups.iter().find(|(f, _, _)| *f == folder);
+                let text = declared.map_or_else(|| title_case(&folder), |(_, t, _)| t.clone());
                 Some(Group {
                     folder: folder.clone(),
                     text,
+                    collapsed: declared.and_then(|(_, _, c)| *c),
                     items: list
                         .into_iter()
                         .map(|p| (p.title.clone(), p.route.clone(), p.description.clone()))
@@ -349,7 +362,11 @@ impl Site {
             let items = g.items.iter().map(|(t, route, _)| {
                 quote! { ::leptos_press::SidebarItem { text: #t, link: #route } }
             });
-            quote! { ::leptos_press::SidebarGroup { text: #text, items: &[ #( #items ),* ] } }
+            let collapsed = match g.collapsed {
+                None => quote! { ::core::option::Option::None },
+                Some(c) => quote! { ::core::option::Option::Some(#c) },
+            };
+            quote! { ::leptos_press::SidebarGroup { text: #text, collapsed: #collapsed, items: &[ #( #items ),* ] } }
         });
         let metas = pages.iter().map(page_meta);
         let mut items: Vec<TokenStream> = Vec::new();
@@ -401,6 +418,7 @@ impl Site {
 struct Group {
     folder: String,
     text: String,
+    collapsed: Option<bool>,
     /// (título, rota, descrição)
     items: Vec<(String, String, String)>,
 }

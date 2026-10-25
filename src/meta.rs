@@ -19,7 +19,27 @@ pub struct SidebarItem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SidebarGroup {
     pub text: &'static str,
+    /// Semântica do `collapsed` do VitePress: `None` = não recolhível; `Some(false)` =
+    /// recolhível, aberto; `Some(true)` = recolhível, fechado.
+    pub collapsed: Option<bool>,
     pub items: &'static [SidebarItem],
+}
+
+impl SidebarGroup {
+    /// O grupo tem um item com a rota `path`.
+    pub fn contains(&self, path: &str) -> bool {
+        let path = normalize_path(path);
+        self.items.iter().any(|i| i.link == path)
+    }
+
+    /// Estado inicial de um grupo recolhível para a página `path`: aberto se `collapsed` é
+    /// `Some(false)` ou se a página atual está no grupo. `None` (não recolhível) = sempre aberto.
+    pub fn open_for(&self, path: &str) -> bool {
+        match self.collapsed {
+            None | Some(false) => true,
+            Some(true) => self.contains(path),
+        }
+    }
 }
 
 /// Layout da página (`layout:` do front-matter).
@@ -140,6 +160,7 @@ mod tests {
     ];
     static GROUPS: [SidebarGroup; 1] = [SidebarGroup {
         text: "G",
+        collapsed: None,
         items: &ITEMS,
     }];
     static SITE: SiteMeta = SiteMeta {
@@ -155,6 +176,18 @@ mod tests {
         assert_eq!(normalize_path("/g/"), "/g");
         assert_eq!(normalize_path("/"), "/");
         assert_eq!(normalize_path(""), "/");
+    }
+
+    #[test]
+    fn collapsed_group_opens_on_current_page() {
+        let mut g = GROUPS[0];
+        assert!(g.open_for("/x"));
+        g.collapsed = Some(false);
+        assert!(g.open_for("/x"));
+        g.collapsed = Some(true);
+        assert!(!g.open_for("/x"));
+        assert!(g.open_for("/g/b/"));
+        assert!(g.contains("/g/a"));
     }
 
     #[test]

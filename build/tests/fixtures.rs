@@ -206,7 +206,7 @@ fn site(root: &Path) -> Site {
         .title("leptos-nebula")
         .description("Componentes Leptos")
         .group("guide", "Guia")
-        .group("components", "Componentes")
+        .group_collapsed("components", "Componentes", true)
         .nav([("Guia", "/guide/"), ("Componentes", "/components/")])
         .sidebar_from_folders()
         .component(Echo)

@@ -17,6 +17,7 @@ pub static SITE: ::leptos_press::SiteMeta = ::leptos_press::SiteMeta {
     sidebar: &[
         ::leptos_press::SidebarGroup {
             text: "Guia",
+            collapsed: ::core::option::Option::None,
             items: &[
                 ::leptos_press::SidebarItem {
                     text: "Começando",
@@ -30,6 +31,7 @@ pub static SITE: ::leptos_press::SiteMeta = ::leptos_press::SiteMeta {
         },
         ::leptos_press::SidebarGroup {
             text: "Componentes",
+            collapsed: ::core::option::Option::Some(true),
             items: &[
                 ::leptos_press::SidebarItem {
                     text: "Btn",
