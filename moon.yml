@@ -67,7 +67,8 @@ tasks:
     command: 'cargo fmt -p leptos-press -p leptos-press-build -p leptos-press-llms -p leptos-press-okf --check'
     inputs: ['@group(sources)']
 
-  # Roda no host, sem compilar o Leptos (critério de aceite 2); inclui os plugins
+  # Roda no host: build e plugins sem o Leptos; o runtime (`leptos-press`) só pelos módulos
+  # puros (`meta`, `search::{index,query}`), sem navegador
   test:
-    command: 'cargo test -p leptos-press-build -p leptos-press-llms -p leptos-press-okf'
+    command: 'cargo test -p leptos-press -p leptos-press-build -p leptos-press-llms -p leptos-press-okf'
     inputs: ['@group(sources)']

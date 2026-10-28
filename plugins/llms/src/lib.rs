@@ -10,6 +10,39 @@
 //!     .build()
 //!     .unwrap_or_else(|e| panic!("{e}"));
 //! ```
+//!
+//! # Formato do `llms-full.txt` (API pública)
+//!
+//! O `llms-full.txt` é lido pela busca do `leptos-press` (`Site::search(true)`, ADR-0015);
+//! por isso o formato é **contrato**, protegido pelo teste `full_format_contract`. Mudá-lo
+//! quebra a busca: o leitor (`leptos_press::search`) muda junto.
+//!
+//! ```text
+//! ---
+//! url: /index.md
+//! ---
+//!
+//! # Início
+//!
+//! ---
+//! url: /guide/start.md
+//! ---
+//!
+//! # Começando
+//! …
+//! ```
+//!
+//! - Uma página após a outra: **a home primeiro**, depois as páginas na ordem do site (a da
+//!   sidebar, depois as que não estão nela, por rota). Páginas sob um `exclude` não entram.
+//! - Cada página começa por um bloco de três linhas, **no início de linha**: `---`,
+//!   `url: <caminho>`, `---`; depois uma linha em branco e o Markdown da página (tags expandidas
+//!   por `MdComponent::markdown`, sem front-matter, sem espaços no fim). Entre duas páginas, uma
+//!   linha em branco. O arquivo termina com uma quebra de linha.
+//! - `<caminho>` com as cópias (`page_copies(true)`, padrão) é o da cópia `.md`: `/index.md`
+//!   (home), `/pasta/index.md` (página de um `index.md` de pasta) ou `/rota.md`; sem as cópias
+//!   (`page_copies(false)`), é a própria rota (`/`, `/pasta`, `/guide/start`).
+//! - O Markdown de uma página pode conter `---` e até `url: …` dentro de **blocos de código
+//!   cercados** (```` ``` ```` / `~~~`): quem lê o arquivo ignora o que está dentro deles.
 
 use leptos_press_build::{Error, Output, PageData, Plugin, SiteData};
 

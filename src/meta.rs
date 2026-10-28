@@ -102,6 +102,9 @@ pub struct SiteMeta {
     pub nav: &'static [NavLink],
     pub sidebar: &'static [SidebarGroup],
     pub pages: &'static [PageMeta],
+    /// Caminho do texto que a busca lê (`/llms-full.txt`) quando o site liga a busca
+    /// (`Site::search(true)` no build); `None` = sem busca (nem o botão "Buscar").
+    pub search: Option<&'static str>,
 }
 
 /// Remove a barra final (`/guide/` → `/guide`); a raiz continua `/`.
@@ -169,6 +172,7 @@ mod tests {
         nav: &[],
         sidebar: &GROUPS,
         pages: &[],
+        search: None,
     };
 
     #[test]

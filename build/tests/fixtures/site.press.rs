@@ -100,6 +100,7 @@ pub static SITE: ::leptos_press::SiteMeta = ::leptos_press::SiteMeta {
             ),
         },
     ],
+    search: ::core::option::Option::None,
 };
 mod mod_basic;
 /// /components/btn (`content/components/btn.md`)

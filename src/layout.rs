@@ -9,6 +9,7 @@ use leptos_router::MatchNestedRoutes;
 use leptos_router::components::{Router, Routes, RoutesProps};
 use leptos_router::hooks::use_location;
 
+use crate::search::Search;
 use crate::{NotFound, Outline, PageLayout, PressStyles, Sidebar, SiteMeta, normalize_path};
 
 /// Largura (px) até a qual a sidebar vira gaveta sobreposta.
@@ -43,7 +44,7 @@ where
     }
 }
 
-/// Cabeçalho (título, nav, tema, menu no mobile), sidebar à esquerda e, no centro, conteúdo +
+/// Cabeçalho (título, busca se o site a ligou, nav, tema, menu no mobile), sidebar à esquerda e, no centro, conteúdo +
 /// outline juntos num container centralizado (`lxp-doc-*`, como o `VPDoc` do VitePress). O
 /// outline é um `<aside>` sticky que só aparece a partir de 1280px. A home (`layout: home`) não
 /// tem sidebar nem outline.
@@ -120,6 +121,7 @@ pub fn PressLayout(site: &'static SiteMeta, children: Children) -> impl IntoView
                     <ToolbarTitle>
                         <a class="lxp-brand" href="/">{site.title}</a>
                     </ToolbarTitle>
+                    {site.search.map(|path| view! { <Search site=site path=path /> })}
                     <nav class="lxp-nav" aria-label="Principal">{nav}</nav>
                     <ThemeSwitcher />
                 </Toolbar>

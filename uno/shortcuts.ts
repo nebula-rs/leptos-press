@@ -104,6 +104,75 @@ export const shortcuts: Shortcuts = {
   'lxp-feature-title': `${fs('md')} ${p('font-weight', v('font-weight-strong'))} mb-[${sp('xs')}]`,
   'lxp-feature-details': `m-0 ${fs('sm')} ${color('on-surface-muted')}`,
 
+  // ── Busca (R-37) ──────────────────────────────────────────────────────────
+  // Botão do cabeçalho com cara de campo (como o VitePress); no celular, só a lupa.
+  'lxp-search-btn': [
+    'inline-flex items-center flex-none box-border m-0 cursor-pointer whitespace-nowrap',
+    `h-[2.25rem] px-[${sp('sm')}] gap-[${sp('xs')}] rounded-[${v('radius-md')}]`,
+    p('font', 'inherit'),
+    fs('sm'),
+    p('background', v('field-bg')),
+    p('border', `${v('border-width')} solid ${v('field-border')}`),
+    color('on-surface-muted'),
+    `hover:${p('border-color', v('color-primary'))} hover:${color('on-surface')}`,
+    `focus-visible:${p('outline', `2px solid ${v('color-focus')}`)} focus-visible:${p('outline-offset', '2px')}`,
+  ].join(' '),
+  'lxp-search-btn-icon': `${fs('md')}`,
+  'lxp-search-btn-label': 'hidden sm:inline',
+  // Tecla (no botão e no rodapé do diálogo).
+  'lxp-search-kbd': [
+    'inline-flex items-center box-border',
+    `px-[${sp('xs')}] rounded-[${v('radius-sm')}]`,
+    p('font-family', v('font-mono')),
+    fs('xs'),
+    p('line-height', '1.5'),
+    p('border', `${v('border-width')} solid ${v('color-border')}`),
+    color('on-surface-muted'),
+  ].join(' '),
+  'lxp-search-btn-kbd': 'hidden md:inline-flex',
+  // Painel dentro do Dialog: altura fixa na janela larga (a lista não faz o diálogo pular);
+  // no celular o Dialog é `maximized` e o painel ocupa tudo.
+  'lxp-search': `flex flex-col box-border w-[35rem] max-w-full h-[min(36rem,calc(100dvh-2*${v('dialog-padding')}))]`,
+  'lxp-search-max': 'flex flex-col box-border w-full h-full',
+  'lxp-search-bar': `flex items-center flex-none gap-[${sp('sm')}] p-[${sp('md')}] ${border('bottom')}`,
+  'lxp-search-field': 'block flex-1 min-w-0',
+  'lxp-search-body': `block flex-1 min-h-0 overflow-y-auto box-border px-[${sp('sm')}] pb-[${sp('sm')}]`,
+  // Carregando, erro e dica: centralizados no corpo.
+  'lxp-search-state': `flex flex-col items-center justify-center text-center gap-[${sp('sm')}] py-[${sp('xl')}] ${fs('sm')} ${color('on-surface-muted')}`,
+  // Região `aria-live` (sempre presente): "Nenhum resultado…".
+  'lxp-search-live': `block text-center ${fs('sm')} ${color('on-surface-muted')} [&:not(:empty)]:py-[${sp('xl')}]`,
+  'lxp-search-list': 'block',
+  'lxp-search-group': `block pt-[${sp('sm')}]`,
+  'lxp-search-group-title': `flex items-baseline flex-wrap gap-x-[${sp('sm')}] px-[${sp('sm')}] py-[${sp('xs')}] ${fs('sm')} ${p('font-weight', v('font-weight-strong'))} ${color('on-surface')}`,
+  'lxp-search-group-name': `${fs('xs')} ${p('font-weight', v('font-weight-normal'))} ${color('on-surface-muted')}`,
+  // Resultado: dois estados completos (nunca base + modificador).
+  'lxp-search-hit': [
+    'flex flex-col box-border no-underline cursor-pointer',
+    `gap-[2px] px-[${sp('sm')}] py-[${sp('xs')}] rounded-[${v('item-radius')}]`,
+    color('on-surface'),
+  ].join(' '),
+  'lxp-search-hit-active': [
+    'flex flex-col box-border no-underline cursor-pointer',
+    `gap-[2px] px-[${sp('sm')}] py-[${sp('xs')}] rounded-[${v('item-radius')}]`,
+    color('on-surface'),
+    p('background', v('item-hover-bg')),
+    p('outline', `2px solid ${v('color-primary')}`),
+    p('outline-offset', '-2px'),
+  ].join(' '),
+  'lxp-search-hit-path': `block ${fs('sm')} ${p('font-weight', v('font-weight-strong'))}`,
+  'lxp-search-hit-parent': `${p('font-weight', v('font-weight-normal'))} ${color('on-surface-muted')}`,
+  // Trecho: texto corrido ou código (dois shortcuts completos).
+  'lxp-search-snippet-text': `block overflow-hidden ${fs('xs')} ${p('line-height', '1.5')} ${color('on-surface-muted')} ${p('overflow-wrap', 'anywhere')}`,
+  'lxp-search-snippet-code': `block overflow-hidden ${fs('xs')} ${p('line-height', '1.5')} ${color('on-surface-muted')} ${p('overflow-wrap', 'anywhere')} ${p('font-family', v('font-mono'))}`,
+  'lxp-search-mark': [
+    `rounded-[${v('radius-sm')}] px-[1px]`,
+    p('background', v('color-primary-soft')),
+    color('primary'),
+    p('font-weight', v('font-weight-strong')),
+  ].join(' '),
+  'lxp-search-footer': `hidden sm:flex items-center flex-none flex-wrap gap-x-[${sp('md')}] gap-y-[${sp('xs')}] px-[${sp('md')}] py-[${sp('sm')}] ${border('top')} ${fs('xs')} ${color('on-surface-muted')}`,
+  'lxp-search-hint': `inline-flex items-center gap-[${sp('xs')}]`,
+
   // ── 404 ───────────────────────────────────────────────────────────────────
   'lxp-not-found': `flex flex-col items-center text-center gap-[${sp('md')}] py-[${sp('2xl')}]`,
 }

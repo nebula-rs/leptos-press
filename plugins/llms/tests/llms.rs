@@ -182,3 +182,81 @@ fn summary_replaces_the_description() {
     let files = self::files("summary-empty", Llms::new().summary(""));
     assert!(files["llms.txt"].starts_with("# leptos-nebula\n\n## Guia"));
 }
+
+/// Contrato do `llms-full.txt` (doc comment do crate; lido pela busca do `leptos-press`):
+/// separador `---` / `url: …` / `---` no início de linha, home primeiro e depois a ordem do
+/// site, `url` da cópia `.md` (ou da rota sem cópias), uma linha em branco entre as partes.
+#[test]
+fn full_format_contract() {
+    let full = &files("contract", Llms::default())["llms-full.txt"];
+    let expected = [
+        ("/index.md", "# Início"),
+        (
+            "/guide/start.md",
+            "# Começando\n\nVeja [a API](/components/btn).",
+        ),
+        (
+            "/guide/theming.md",
+            "# Temas\n\n```rust\n// exemplo Basic\n```",
+        ),
+        ("/components/btn.md", "# Btn\n\n## Props"),
+    ];
+    let built = expected
+        .iter()
+        .map(|(url, md)| format!("---\nurl: {url}\n---\n\n{md}"))
+        .collect::<Vec<_>>()
+        .join("\n\n")
+        + "\n";
+    assert_eq!(full, &built);
+
+    // Sem cópias: a `url` é a rota (home = `/`), na mesma ordem.
+    let full = &files("contract-routes", Llms::new().page_copies(false))["llms-full.txt"];
+    let urls: Vec<&str> = full
+        .lines()
+        .filter_map(|l| l.strip_prefix("url: "))
+        .collect();
+    assert_eq!(
+        urls,
+        ["/", "/guide/start", "/guide/theming", "/components/btn"]
+    );
+    assert!(full.starts_with("---\nurl: /\n---\n\n# Início\n\n---\n"));
+    assert!(full.ends_with("## Props\n"));
+}
+
+/// Uma página com `index.md` de pasta sai como `/pasta/index.md`; um `---` dentro de um bloco
+/// de código fica no texto da página (o leitor ignora blocos de código).
+#[test]
+fn full_format_folder_index_and_fenced_separator() {
+    let root = two_section_site("contract-index");
+    std::fs::write(
+        root.join("content/guide/index.md"),
+        "---\ntitle: Guia\n---\n\n# Guia\n\n```text\n---\nurl: /falso.md\n---\n```\n",
+    )
+    .unwrap();
+    let files = Site::new("content")
+        .root(&root)
+        .title("t")
+        .sidebar_from_folders()
+        .component(Echo)
+        .plugin(Llms::default())
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"))
+        .files;
+    let full = &files["llms-full.txt"];
+    assert!(
+        full.contains(
+            "---\nurl: /guide/index.md\n---\n\n# Guia\n\n```text\n---\nurl: /falso.md\n---\n```"
+        ),
+        "{full}"
+    );
+    let routes = Site::new("content")
+        .root(&root)
+        .title("t")
+        .sidebar_from_folders()
+        .component(Echo)
+        .plugin(Llms::new().page_copies(false))
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"))
+        .files;
+    assert!(routes["llms-full.txt"].contains("---\nurl: /guide\n---\n\n# Guia"));
+}

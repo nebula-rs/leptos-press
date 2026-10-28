@@ -4,7 +4,7 @@
 //! `leptos-press-build`, que gera um `press.rs` com `SITE`, uma função por página e `routes()`.
 //! Este crate fornece o layout (`PressApp`, `PressLayout`, `Sidebar`, `Outline`, `PrevNext`,
 //! `HomeLayout`), os blocos que o código gerado chama (`html`, `table`, `code_block`, `alert`,
-//! `render_page`) e o CSS (`PressStyles`).
+//! `render_page`), o CSS (`PressStyles`) e a busca ([`search`], ligada por `SiteMeta::search`).
 //!
 //! Seguro para SSR: nada de API do navegador durante a renderização (ADR-0007). As features
 //! `csr`/`hydrate`/`ssr` são repassadas pelo app. Ver `docs/press/overview.md`.
@@ -21,6 +21,7 @@ mod meta;
 mod not_found;
 mod outline;
 mod prev_next;
+pub mod search;
 mod sidebar;
 mod styles;
 

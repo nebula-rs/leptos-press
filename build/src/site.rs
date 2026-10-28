@@ -24,7 +24,11 @@ pub struct Site {
     groups: Vec<(String, String, Option<bool>)>,
     components: Vec<Box<dyn MdComponent>>,
     plugins: Vec<Box<dyn Plugin>>,
+    search: bool,
 }
+
+/// Arquivo que a busca lê (emitido pelo plugin `llms` com `full(true)`), relativo à saída.
+const SEARCH_FILE: &str = "llms-full.txt";
 
 /// Saída da geração (antes de escrever em disco).
 pub struct Generated {
@@ -51,6 +55,7 @@ impl Site {
             groups: Vec::new(),
             components: Vec::new(),
             plugins: Vec::new(),
+            search: false,
         }
     }
 
@@ -123,8 +128,19 @@ impl Site {
         self
     }
 
+    /// Liga a busca do site (padrão: desligada; ADR-0015). A busca roda no navegador e lê o
+    /// `llms-full.txt`: depois dos plugins, o build exige que algum o tenha emitido (registre
+    /// `leptos_press_llms::Llms` com `full(true)`, o padrão) — senão, erro de build. O
+    /// acoplamento é só pelo nome do arquivo. Com a busca ligada, o `SITE` gerado traz
+    /// `search: Some("/llms-full.txt")`, e o cabeçalho ganha o botão "Buscar".
+    pub fn search(mut self, on: bool) -> Self {
+        self.search = on;
+        self
+    }
+
     /// Gera tudo em memória: compila as páginas → `check_page` dos plugins → `emit` dos
-    /// plugins → valida os links internos (rotas e arquivos emitidos) → `press.rs`.
+    /// plugins → com [`Site::search`], exige o `llms-full.txt` → valida os links internos
+    /// (rotas e arquivos emitidos) → `press.rs`.
     pub fn generate(&self) -> Result<Generated, Error> {
         let content_dir = self.root.join(&self.content);
         let mut files = Vec::new();
@@ -175,6 +191,11 @@ impl Site {
 
         let sidebar = self.sidebar(&pages);
         let files = self.run_plugins(&pages, &sidebar)?;
+        if self.search && !files.contains_key(SEARCH_FILE) {
+            return Err(Error::new(
+                "a busca lê o llms-full.txt: registre `leptos_press_llms::Llms` com `full(true)`",
+            ));
+        }
         self.validate_links(&pages, &files)?;
 
         let nav = self.resolve_nav(&pages, &sidebar)?;
@@ -369,6 +390,12 @@ impl Site {
             quote! { ::leptos_press::SidebarGroup { text: #text, collapsed: #collapsed, items: &[ #( #items ),* ] } }
         });
         let metas = pages.iter().map(page_meta);
+        let search = if self.search {
+            let path = format!("/{SEARCH_FILE}");
+            quote! { ::core::option::Option::Some(#path) }
+        } else {
+            quote! { ::core::option::Option::None }
+        };
         let mut items: Vec<TokenStream> = Vec::new();
         for item in pages.iter().flat_map(|p| p.items.iter()) {
             if !items.iter().any(|i| i.to_string() == item.to_string()) {
@@ -397,6 +424,7 @@ impl Site {
                 nav: &[ #( #nav_items ),* ],
                 sidebar: &[ #( #groups ),* ],
                 pages: &[ #( #metas ),* ],
+                search: #search,
             };
 
             #( #items )*

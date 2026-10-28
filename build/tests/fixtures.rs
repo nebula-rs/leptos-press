@@ -395,3 +395,58 @@ fn site_data_order_and_groups() {
          guide=Guia:/guide/start,/guide/theming components=Componentes:/components/btn"
     );
 }
+
+// ── Busca (ADR-0015) ────────────────────────────────────────────────────────
+
+#[test]
+fn search_without_llms_full_is_an_error() {
+    let root = temp_site("search-no-llms", &[("content/a.md", "# A\n")]);
+    let e = Site::new("content")
+        .root(&root)
+        .search(true)
+        .generate()
+        .err()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        e,
+        "a busca lê o llms-full.txt: registre `leptos_press_llms::Llms` com `full(true)`"
+    );
+    // Outro plugin emitindo outros arquivos não basta: o que conta é o nome do arquivo.
+    let e = Site::new("content")
+        .root(&root)
+        .search(true)
+        .plugin(Emit("llms", "llms.txt"))
+        .generate()
+        .err()
+        .unwrap()
+        .to_string();
+    assert!(e.starts_with("a busca lê o llms-full.txt"), "{e}");
+}
+
+#[test]
+fn search_with_llms_full_points_site_meta_to_the_file() {
+    let root = temp_site("search-ok", &[("content/a.md", "# A\n")]);
+    let generated = Site::new("content")
+        .root(&root)
+        .search(true)
+        .plugin(Emit("qualquer", "llms-full.txt"))
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert!(
+        generated
+            .rust
+            .contains(r#"search: ::core::option::Option::Some("/llms-full.txt")"#),
+        "{}",
+        generated.rust
+    );
+    // Desligada (padrão): `None`, e o arquivo não é exigido.
+    let generated = Site::new("content").root(&root).generate().unwrap();
+    assert!(
+        generated
+            .rust
+            .contains("search: ::core::option::Option::None"),
+        "{}",
+        generated.rust
+    );
+}

@@ -19,4 +19,5 @@ leptos_router = { workspace = true }
 leptos-nebula     = { workspace = true }
 js-sys        = { workspace = true }
 wasm-bindgen  = { workspace = true }
-web-sys       = { workspace = true, features = ["Window", "Navigator"] }
+wasm-bindgen-futures = { workspace = true }
+web-sys       = { workspace = true, features = ["Window", "Navigator", "Document", "Element", "HtmlElement", "KeyboardEvent", "MouseEvent", "MediaQueryList", "Response", "Performance", "ScrollIntoViewOptions", "ScrollLogicalPosition"] }
