@@ -5,7 +5,7 @@
 //! cada plugin (na ordem de registro, página a página) → `emit` de cada plugin → validar os
 //! links internos, aceitando como destino as rotas **e** os arquivos emitidos.
 //!
-//! [ADR-0011]: https://github.com/nebula-rs/leptos-next/blob/main/docs/decisions/0011-plugins-do-press.md
+//! [ADR-0011]: https://github.com/nebula-rs/leptos-next/blob/main/docs/decisions/0011-press-plugins.md
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
