@@ -11,7 +11,9 @@ use crate::component::MdComponent;
 use crate::error::Error;
 use crate::frontmatter::Layout;
 use crate::page::{CompiledPage, compile_page_in_site, format_rust};
-use crate::plugin::{GroupData, Output, Plugin, SiteData, page_data, page_error, plugin_error};
+use crate::plugin::{
+    GroupData, LocaleData, Output, Plugin, SiteData, page_data, page_error, plugin_error,
+};
 
 /// Configuração do site e geração de `press.rs` + arquivos estáticos.
 pub struct Site {
@@ -249,6 +251,8 @@ impl Site {
     }
 
     /// Páginas na ordem da sidebar, depois as que não estão nela (por rota).
+    ///
+    /// Single-language site for now: one implicit locale (code and prefix `""`).
     fn site_data(&self, pages: &[CompiledPage], sidebar: &[Group]) -> SiteData {
         let mut ordered: Vec<&CompiledPage> = Vec::new();
         for (_, route, _) in sidebar.iter().flat_map(|g| g.items.iter()) {
@@ -269,11 +273,14 @@ impl Site {
             groups: sidebar
                 .iter()
                 .map(|g| GroupData {
+                    locale: String::new(),
                     folder: g.folder.clone(),
                     text: g.text.clone(),
                     routes: g.items.iter().map(|(_, r, _)| r.clone()).collect(),
                 })
                 .collect(),
+            locales: vec![LocaleData::implicit()],
+            default_locale: String::new(),
         }
     }
 

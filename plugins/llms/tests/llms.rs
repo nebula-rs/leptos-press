@@ -159,7 +159,7 @@ fn optional_group_goes_last() {
     let files = files("optional", Llms::new().optional_group("guide"));
     assert_eq!(
         files["llms.txt"],
-        "# leptos-nebula\n\n> Componentes Leptos\n\n## Componentes\n\n- [Btn](/components/btn.md): Botão\n\n## Optional\n\n- [Começando](/guide/start.md): Como começar\n- [Temas](/guide/theming.md): Tokens\n"
+        "# leptos-nebula\n\n> Componentes Leptos\n\nFull documentation in a single file: [llms-full.txt](/llms-full.txt)\n\n## Componentes\n\n- [Btn](/components/btn.md): Botão\n\n## Optional\n\n- [Começando](/guide/start.md): Como começar\n- [Temas](/guide/theming.md): Tokens\n"
     );
 }
 
@@ -178,9 +178,11 @@ fn unknown_optional_group_is_an_error() {
 #[test]
 fn summary_replaces_the_description() {
     let files = files("summary", Llms::new().summary("Outro resumo"));
-    assert!(files["llms.txt"].starts_with("# leptos-nebula\n\n> Outro resumo\n\n## Guia"));
+    assert!(
+        files["llms.txt"].starts_with("# leptos-nebula\n\n> Outro resumo\n\nFull documentation")
+    );
     let files = self::files("summary-empty", Llms::new().summary(""));
-    assert!(files["llms.txt"].starts_with("# leptos-nebula\n\n## Guia"));
+    assert!(files["llms.txt"].starts_with("# leptos-nebula\n\nFull documentation"));
 }
 
 /// Contrato do `llms-full.txt` (doc comment do crate; lido pela busca do `leptos-press`):

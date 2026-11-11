@@ -30,7 +30,9 @@ pub use component::{Attrs, Ctx, MdComponent};
 pub use error::Error;
 pub use frontmatter::{Feature, FrontMatter, Hero, HeroAction, Layout};
 pub use page::{CompiledPage, compile_page, format_rust, highlight_html};
-pub use plugin::{GroupData, Output, PageData, Plugin, SiteData, map_links};
+pub use plugin::{
+    GroupData, LocaleData, Output, PageData, Plugin, SiteData, SiteDataBuilder, map_links,
+};
 pub use render::Heading;
 pub use site::{Generated, Site};
 

@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 
 use leptos_press_build::{
-    Attrs, CompiledPage, Ctx, Error, MdComponent, Output, PageData, Plugin, Site, SiteData,
-    compile_page, format_rust,
+    Attrs, CompiledPage, Ctx, Error, LocaleData, MdComponent, Output, PageData, Plugin, Site,
+    SiteData, compile_page, format_rust,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -394,6 +394,35 @@ fn site_data_order_and_groups() {
         "/guide/start /guide/theming /components/btn /\n\
          guide=Guia:/guide/start,/guide/theming components=Componentes:/components/btn"
     );
+}
+
+/// A site that declares no locales has one implicit locale (code and prefix `""`): every
+/// page and group is in it, and routes and folders are unchanged.
+#[test]
+fn single_language_site_has_the_implicit_locale() {
+    struct Locales;
+    impl Plugin for Locales {
+        fn name(&self) -> &'static str {
+            "locales"
+        }
+        fn emit(&self, site: &SiteData, out: &mut Output) -> Result<(), Error> {
+            assert_eq!(site.locales, [LocaleData::implicit()]);
+            assert_eq!(site.default_locale, "");
+            assert!(!site.is_multilingual());
+            assert!(site.pages.iter().all(|p| p.locale.is_empty()));
+            assert!(site.groups.iter().all(|g| g.locale.is_empty()));
+            assert_eq!(site.pages_in("").count(), site.pages.len());
+            let local: Vec<String> = site.pages.iter().map(|p| site.local_route(p)).collect();
+            let routes: Vec<&str> = site.pages.iter().map(|p| p.route.as_str()).collect();
+            assert_eq!(local, routes);
+            out.add("ok.txt", "")
+        }
+    }
+    let generated = site(&two_section_site("implicit-locale"))
+        .plugin(Locales)
+        .generate()
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert!(generated.files.contains_key("ok.txt"));
 }
 
 // ── Busca (ADR-0015) ────────────────────────────────────────────────────────

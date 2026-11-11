@@ -2,6 +2,8 @@
 
 > Componentes Leptos
 
+Full documentation in a single file: [llms-full.txt](/llms-full.txt)
+
 ## Guia
 
 - [Começando](/guide/start.md): Como começar
