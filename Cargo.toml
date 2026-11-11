@@ -16,7 +16,7 @@ ssr     = ["leptos/ssr", "leptos-nebula/ssr", "leptos_meta/ssr", "leptos_router/
 leptos        = { workspace = true }
 leptos_meta   = { workspace = true }
 leptos_router = { workspace = true }
-leptos-nebula     = { workspace = true }
+leptos-nebula     = { workspace = true, features = ["router"] }
 js-sys        = { workspace = true }
 wasm-bindgen  = { workspace = true }
 wasm-bindgen-futures = { workspace = true }

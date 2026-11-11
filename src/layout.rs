@@ -2,8 +2,8 @@ use leptos::children::ToChildren;
 use leptos::prelude::*;
 use leptos_meta::provide_meta_context;
 use leptos_nebula::{
-    Btn, BtnDesign, Color, Drawer, Header, Layout, Page, PageContainer, ThemeSwitcher, Toolbar,
-    ToolbarTitle, UiStyles, provide_theme,
+    Btn, BtnDesign, Color, Drawer, Header, Layout, Page, PageContainer, PluginHost, ThemeSwitcher,
+    Toolbar, ToolbarTitle, UiStyles, provide_plugins, provide_theme,
 };
 use leptos_router::MatchNestedRoutes;
 use leptos_router::components::{Router, Routes, RoutesProps};
@@ -25,6 +25,8 @@ where
 {
     provide_meta_context();
     provide_theme();
+    // Programmatic components (`Plugins::open`): the host is rendered inside the `Router` below.
+    provide_plugins();
     provide_context(site);
     // `Routes` é chamado como função: no `view!`, `{routes()}` seria tratado como view.
     let router = move || {
@@ -40,6 +42,7 @@ where
         <PressStyles />
         <Router>
             <PressLayout site=site>{router()}</PressLayout>
+            <PluginHost />
         </Router>
     }
 }
